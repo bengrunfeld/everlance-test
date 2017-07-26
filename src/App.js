@@ -13,18 +13,29 @@ class App extends Component {
   }
 
   fetchData() {
-    fetch('./data.txt')
+    return fetch('./data.txt')
       .then((response) => {
           if (response.status >= 400) {
               throw new Error("Bad response from server");
           }
 
-          response.text().then(text => this.setState({rawData: text}, this.parseData))
+          
+          response.text().then(text => {
+            const parsedData = this.parseData(text)
+            const parseBursts = this.parseBursts(parsedData)
+            const dataWithDelta = this.findDelta(parseBursts)
+            const dataWithHighest = this.checkHighestBurst(dataWithDelta)
+            const data = this.sortByHighestBurst(dataWithHighest)
+            this.setState({data: data}, this.parseData)
+          })
       })
   }
 
-  parseData() {
-    const data = this.state.rawData.split(']')
+  parseData(rawData) {
+    if (typeof(rawData) === 'undefined') 
+      return false 
+
+    const data = rawData.split(']')
 
     // Parse text data to usable object. Mark empty/undefined items
     const parsedData = data.map(item => {
@@ -42,13 +53,10 @@ class App extends Component {
     // Filter out empty fields
     const filteredData = parsedData.filter(item => 
       (item !== false) ? true : false)
-
-    this.setState({data: filteredData}, this.parseBursts)
+    return filteredData
   }
 
-  parseBursts() {
-    const { data } = this.state
-
+  parseBursts(data) {
     const newData = data.map(item => {
       let bursts = []
       let subBurst = []
@@ -68,13 +76,10 @@ class App extends Component {
 
       return Object.assign({}, item, {bursts: bursts})
     })
-
-    this.setState({data: newData}, this.findDelta)
+    return newData
   }
 
-  findDelta() {
-    const { data } = this.state
-
+  findDelta(data) {
     let newData = data.map(item => {
       let bursts = item.bursts.map(burst => {
         const delta = burst[burst.length-1].price - burst[0].price
@@ -88,54 +93,51 @@ class App extends Component {
       })
       return Object.assign({}, item, {bursts: bursts})
     })
-
-    this.setState({data: newData}, this.checkHighestBurst)
+    return newData
   }  
 
-  checkHighestBurst() {
-    const { data } = this.state
+  checkHighestBurst(data) {
   
     const newData = data.map((item, i) => {
       let highest = {
-        delta: 0
+        roi: 0
       }
 
       item.bursts.forEach((burst, i) => {
         let dStart = new Date('5/1/2004')
         let dEnd = new Date('5/1/2004')
 
-        let dateStart = new Date(dStart.setMonth(dStart.getMonth() + burst.start))
-        let dateEnd = new Date(dEnd.setMonth(dEnd.getMonth() + burst.end))
+        let ds = new Date(dStart.setMonth(dStart.getMonth() + burst.start))
+        let de = new Date(dEnd.setMonth(dEnd.getMonth() + burst.end))
 
-        if (burst.delta > highest.delta) {
+        const roi = burst.delta / burst.prices[0].price
+
+        if (roi > highest.roi) {
           highest.delta = burst.delta
-          highest.startDate = `${dStart.getMonth()}/${dStart.getDate()}/${dStart.getFullYear()}`
-          highest.endDate = `${dEnd.getMonth()}/${dEnd.getDate()}/${dEnd.getFullYear()}`
-          highest.roi = (burst.delta / burst.prices[0].price).toFixed(3)
+          highest.startDate = `${ds.getMonth()}/${ds.getDate()}/${ds.getFullYear()}`
+          highest.endDate = `${de.getMonth()}/${de.getDate()}/${de.getFullYear()}`
+          highest.roi = roi.toFixed(3)
         }
       })
       return Object.assign({}, item, {
         highestRoi: highest
       })
     })
-
-    this.setState({data: newData}, this.sortByHighestBurst)
+    return newData
   }
 
-  sortByHighestBurst() {
-    const { data } = this.state
-
-    function compare(a,b) {
-      if (a.highestRoi.delta > b.highestRoi.delta)
+  sortByHighestBurst(data) {
+    const compare = (a,b) => {
+      if (a.highestRoi.roi > b.highestRoi.roi)
         return -1
-      if (a.highestRoi.delta < b.highestRoi.delta)
+      if (a.highestRoi.roi < b.highestRoi.roi)
         return 1
       return 0
     }
 
     // Shouldn't mutate original data structure but I was out of time
     data.sort(compare)
-    this.setState({data: data})
+    return data
   }
 
   componentDidMount() {
