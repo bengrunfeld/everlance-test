@@ -23,7 +23,7 @@ class App extends Component {
             // Use a modular, if verbose, approach to solving 
             // the problem. This way, functions are easily testible
             // and strive not to cause side-effects
-            
+
             const parsedData = this.parseData(text)
             const parseBursts = this.parseBursts(parsedData)
             const dataWithDelta = this.findDelta(parseBursts)
@@ -161,20 +161,33 @@ class App extends Component {
     return (
       <div className="App">
         <h1>Sort Securities By Burst</h1>
-        {
-          data.map((item, i) => {
-            if (typeof(item.highestRoi) === 'undefined') {
-              return false 
-            }
-            return <Stock key={i} 
-                          name={item.tickerSymbol} 
-                          roi={item.highestRoi.roi}
-                          delta={item.highestRoi.delta}
-                          start={item.highestRoi.startDate}
-                          end={item.highestRoi.endDate}
-                          />
-          })
-        }
+        <table className="table">
+        <thead>
+        <tr>
+          <th>Name</th>
+          <th>Gain</th>
+          <th>Burst Size</th>
+          <th>Start Date</th>
+          <th>End Date</th>
+        </tr>
+        </thead>
+        <tbody>
+          {
+            data.map((item, i) => {
+              if (typeof(item.highestRoi) === 'undefined') {
+                return false 
+              }
+              return <Stock key={i} 
+                            name={item.tickerSymbol} 
+                            roi={item.highestRoi.roi}
+                            delta={item.highestRoi.delta}
+                            start={item.highestRoi.startDate}
+                            end={item.highestRoi.endDate}
+                            />
+            })
+          }
+        </tbody>
+        </table>
       </div>
     );
   }
