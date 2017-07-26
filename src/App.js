@@ -12,15 +12,18 @@ class App extends Component {
     }
   }
 
-  fetchData() {
+  fetchData() { 
     return fetch('./data.txt')
       .then((response) => {
           if (response.status >= 400) {
               throw new Error("Bad response from server");
           }
-
           
           response.text().then(text => {
+            // Use a modular, if verbose, approach to solving 
+            // the problem. This way, functions are easily testible
+            // and strive not to cause side-effects
+            
             const parsedData = this.parseData(text)
             const parseBursts = this.parseBursts(parsedData)
             const dataWithDelta = this.findDelta(parseBursts)
@@ -32,12 +35,13 @@ class App extends Component {
   }
 
   parseData(rawData) {
+    // Parse text data to usable object. Mark empty/undefined items
+
     if (typeof(rawData) === 'undefined') 
       return false 
 
     const data = rawData.split(']')
 
-    // Parse text data to usable object. Mark empty/undefined items
     const parsedData = data.map(item => {
       const fields = item.split('|')
       return (typeof(fields[1]) !== 'undefined') ? 
@@ -57,6 +61,7 @@ class App extends Component {
   }
 
   parseBursts(data) {
+    // Parse the bursts into usable and more readable objects
     const newData = data.map(item => {
       let bursts = []
       let subBurst = []
@@ -80,6 +85,7 @@ class App extends Component {
   }
 
   findDelta(data) {
+    // Find the total change in price for each burst
     let newData = data.map(item => {
       let bursts = item.bursts.map(burst => {
         const delta = burst[burst.length-1].price - burst[0].price
@@ -97,7 +103,9 @@ class App extends Component {
   }  
 
   checkHighestBurst(data) {
-  
+    // For each company, find the burst with the highest 
+    // percentage gain in price
+
     const newData = data.map((item, i) => {
       let highest = {
         roi: 0
@@ -127,6 +135,8 @@ class App extends Component {
   }
 
   sortByHighestBurst(data) {
+    // Sort the main data array by percentage gain in price
+
     const compare = (a,b) => {
       if (a.highestRoi.roi > b.highestRoi.roi)
         return -1
@@ -141,6 +151,7 @@ class App extends Component {
   }
 
   componentDidMount() {
+    // Kick off process
     this.fetchData()
   }
 
